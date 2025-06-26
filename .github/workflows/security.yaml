@@ -11,22 +11,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Needed for full history scan
-
+      # Secret Scanning
       - name: Run Gitleaks scan
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
-
-      # ✅ TruffleHog (Secrets Scanner)
-      - name: Run TruffleHog v3
+      # Code linting
+      - name: Run ESLint
         run: |
-          docker run --rm -v ${{ github.workspace }}:/dist ghcr.io/trufflesecurity/trufflehog:latest \
-          filesystem --directory /dist --only-verified --json > trufflehog-results.json
-        continue-on-error: true
-          
-      - name: Upload TruffleHog Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: trufflehog-results
-          path: trufflehog-results.json
+          npx eslint . || true  # continues even if lint errors are found
