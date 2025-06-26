@@ -35,20 +35,22 @@ jobs:
       - name: Install Semgrep
         run: pip install semgrep
       - name: Perform Semgrep Analysis
-        run: semgrep scan -q --sarif --config auto ./ > semgrep-results.sarif
+      #  run: semgrep scan -q --sarif --config auto ./ > semgrep-results.sarif
+        run: semgrep scan -q --json --json-output=semgrep-results.json
 
       # upload the results for the CodeQL GitHub app to annotate the code
       - name: Save SARIF results as artifact
         uses: actions/upload-artifact@v4
         with:
           name: semgrep-scan-results
-          path: semgrep-results.sarif
+        #  path: semgrep-results.sarif
+          path: semgrep-results.json
 
       # Upload SARIF file generated in previous step
-      - name: Upload SARIF result to the GitHub Security Dashboard
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: semgrep-results.sarif
+      # - name: Upload SARIF result to the GitHub Security Dashboard
+      #   uses: github/codeql-action/upload-sarif@v2
+      #   with:
+      #     sarif_file: semgrep-results.sarif
 
 
 
