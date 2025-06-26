@@ -29,7 +29,7 @@ jobs:
         run: semgrep scan -q --json --json-output=semgrep-results.json
 
       # upload the results for the CodeQL GitHub app to annotate the code
-      - name: Save SARIF results as artifact
+      - name: Save Semgrep results as artifact
         uses: actions/upload-artifact@v4
         with:
           name: semgrep-scan-results
@@ -47,6 +47,40 @@ jobs:
         with:
           name: eslint-report
           path: eslint-results.json
+
+      # Install dependencies (for dep scanning)
+      - name: Install Node.js dependencies
+        run: npm install
+
+      #  ✅ Snyk Dependency scanning (npm, yarn, etc.)
+      - name: Snyk dependency scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: test --all-projects --json-file-output=snyk-deps.json || true
+
+      # Docker build for image scan
+      - name: Build Docker image
+        run: docker build -t myapp:latest .
+
+      # Image scanning
+      - name: Snyk container image scan
+        uses: snyk/actions/docker@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: myapp:latest
+          args: test --json-file-output=snyk-image.json || true
+
+      # Upload both reports as artifacts
+      - name: Upload Snyk Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: snyk-security-reports
+          path: |
+            snyk-deps.json
+            snyk-image.json
 
 
 
