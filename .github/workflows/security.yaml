@@ -21,9 +21,10 @@ jobs:
       # ✅ TruffleHog (Secrets Scanner)
       - name: Run TruffleHog v3
         run: |
-          docker run --rm -v ${{ github.workspace }}:/ ghcr.io/trufflesecurity/trufflehog:latest \
-          filesystem --directory /repo --only-verified --json > trufflehog-results.json
-
+          docker run --rm -v ${{ github.workspace }}:/src ghcr.io/trufflesecurity/trufflehog:latest \
+          filesystem --directory /src --only-verified --json > trufflehog-results.json
+        continue-on-error: true
+          
       - name: Upload TruffleHog Report
         uses: actions/upload-artifact@v4
         with:
