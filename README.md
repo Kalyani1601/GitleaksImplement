@@ -1,161 +1,171 @@
-DevSecOps Security Tooling Documentation
-This document outlines the security tools integrated into the CI/CD pipeline for the Node.js project. These tools ensure automated detection of vulnerabilities, insecure code patterns, secrets exposure, and image-level risks, aligning with industry best practices for secure software delivery.
+# DevSecOps Security Tooling Guide
 
-📌 Security Tools Used
-Tool	Purpose	Type
-Semgrep	Static Application Security Testing (SAST) & Code Linting	Code & Security Scanner
-ESLint	Code quality and style enforcement	Code Linter
-Gitleaks	Secrets detection in Git history or changes	Secrets Scanner
-Snyk	Dependency and container vulnerability scanning	Software Composition Analysis (SCA) + Container Security
+> **Scope:** Node.js services and supporting Docker images deployed through the GitHub Actions CI/CD pipeline  
+> **Goal:** Detect and block vulnerable code, leaked secrets, and insecure dependencies _before_ they reach production.
 
-🔧 Tool Configuration Details
-1. Semgrep
-Used For: SAST and advanced code linting
+---
 
-How it's configured:
+## 1  Security Tool Stack
 
-Run via Docker in GitHub Actions
+| Tool | Primary Purpose | Scan Layer |
+|------|-----------------|-----------|
+| **Semgrep** | SAST (semantic code analysis) & advanced linting | Source code |
+| **ESLint** | Code-style / quality enforcement | Source code |
+| **Gitleaks** | Secrets detection (commits & history) | Git |
+| **Snyk** | Dependency & container vulnerability scanning | npm packages • Docker image |
 
-Config: Semgrep default JavaScript rules
+---
 
-Output format: JSON and optionally SARIF
+## 2  Configuration Highlights
 
-Why Semgrep:
+### 2.1  Semgrep — SAST & Powerful Linter
+| Item | Value |
+|------|-------|
+| **Execution** | Docker (`returntocorp/semgrep`) inside a GitHub Actions job |
+| **Ruleset** | `p/javascript` (plus any custom rules in `.semgrep/`) |
+| **Outputs** | `semgrep.json` (`--json`) & optional `semgrep.sarif` |
+| **Why** | Finds logic-level bugs and OWASP patterns that simple linters miss |
 
-Language-aware scanning for JS/TS
+```bash
+semgrep scan \
+  --config=p/javascript \
+  --json --output=semgrep.json
+```
 
-Detects insecure coding practices, logic flaws, and linting issues
+---
 
-Open-source and customizable
+### 2.2  ESLint — Style & Basic Lint
 
-bash
-Copy
-Edit
-semgrep scan --config p/javascript --json --output semgrep.json
-2. ESLint
-Used For: Code style enforcement and basic code linting
+* **Runtime:** Node 18 container  
+* **Config file:** `eslint.config.js` (flat-config, ESLint v9+)  
 
-How it's configured:
-
-Uses ESLint v9+ with eslint.config.js
-
-Run via Docker in GitHub Actions
-
-Output format: SARIF for GitHub Security Dashboard (optional)
-
-Why ESLint:
-
-Widely adopted linter for JavaScript/Node.js
-
-Helps enforce consistent code style and catch common issues early
-
-js
-Copy
-Edit
+```js
 // eslint.config.js
 export default [
   {
-    files: ["**/*.js"],
+    files: ["**/*.js","**/*.ts"],
     rules: {
-      semi: ["error", "always"],
-      quotes: ["error", "double"]
-    }
-  }
+      semi:   ["error", "always"],
+      quotes: ["error", "double"],
+    },
+  },
 ];
-3. Gitleaks
-Used For: Secrets scanning in code, commits, and Git history
+```
 
-How it's configured:
+SARIF upload is enabled so violations surface in **GitHub → Code Scanning**.
 
-Run in GitHub Actions via Docker
+---
 
-Target: full repository or recent commit range
+### 2.3  Gitleaks — Secret Scanner
 
-Output: JSON or console output
+```bash
+gitleaks detect \
+  --source=. \
+  --report-format=json \
+  --report-path=gitleaks-report.json
+```
 
-Why Gitleaks:
+*Scans new commits only* on pull-request jobs; a full-history scan runs nightly on `main`.
 
-Detects hardcoded secrets (API keys, tokens, credentials)
+---
 
-Lightweight, fast, and Git-aware
+### 2.4  Snyk — SCA & Container Security
 
-bash
-Copy
-Edit
-gitleaks detect --source=. --report-format=json --report-path=gitleaks-report.json
-4. Snyk
-Used For:
+```bash
+# Dependency audit
+snyk test --all-projects \
+  --json-file-output=snyk-deps.json
 
-Dependency vulnerability scanning (npm)
+# Image audit
+snyk container test myapp:latest \
+  --json-file-output=snyk-image.json
+```
 
-Docker image scanning for OS and library CVEs
+* Requires `SNYK_TOKEN` secret.  
+* Monitored projects appear in the Snyk SaaS dashboard for ongoing alerts.
 
-How it's configured:
+---
 
-Requires a SNYK_TOKEN stored in GitHub Secrets
+## 3  CI/CD Flow
 
-Run in GitHub Actions via official Snyk actions
-
-Output: JSON reports uploaded as artifacts
-
-Why Snyk:
-
-Developer-friendly CVE detection
-
-Actively maintained vulnerability database
-
-Can monitor live projects post-deployment via GitHub App
-
-bash
-Copy
-Edit
-# Dependency scan
-snyk test --all-projects --json-file-output=snyk-deps.json
-
-# Image scan
-snyk container test myapp:latest --json-file-output=snyk-image.json
-✅ Summary of Benefits
-Security Area	Tool	Benefit
-Static Code Analysis	Semgrep	Detects vulnerable code patterns and logic flaws
-Code Quality	ESLint	Enforces coding standards and prevents bugs
-Secrets Management	Gitleaks	Prevents secret leakage into Git history
-Dependency Security	Snyk	Finds vulnerabilities in 3rd-party libraries
-Container Hardening	Snyk	Identifies OS-level vulnerabilities in Docker images
-
-📁 Artifacts & Reporting
-Each scan stores its results as artifacts within the GitHub Actions run for visibility and traceability:
-
-Tool	Artifact Name	Format
-Semgrep	semgrep.json	JSON
-ESLint	eslint-report.sarif	SARIF
-Gitleaks	gitleaks-report.json	JSON
-Snyk	snyk-deps.json / snyk-image.json	JSON
-
-These can be optionally integrated into:
-
-GitHub Security Dashboard (via SARIF upload)
-
-Slack/Email notifications
-
-Security Gate reports
-
-🔄 CI/CD Integration Flow
-mermaid
-Copy
-Edit
+```mermaid
 graph TD
-A[Checkout Code] --> B[ESLint Linting]
-B --> C[Gitleaks Secrets Scan]
-C --> D[Semgrep SAST]
-D --> E[Snyk Dependency Scan]
-E --> F[Docker Build]
-F --> G[Snyk Image Scan]
-G --> H[Upload Reports as Artifacts]
-🚀 Future Enhancements
-Upload Semgrep/ESLint SARIF to GitHub Code Scanning dashboard
+  A[Checkout Code] --> B[ESLint]
+  B --> C[Gitleaks]
+  C --> D[Semgrep]
+  D --> E[Snyk&nbsp;Dependency&nbsp;Scan]
+  E --> F[Docker&nbsp;Build]
+  F --> G[Snyk&nbsp;Image&nbsp;Scan]
+  G --> H[Upload Reports as Artifacts]
+```
 
-Integrate Slack or email notifications for high severity findings
+A **failing high-severity finding** in any step marks the build red and blocks the merge.
 
-Use Scorecard for overall repo security posture
+---
 
-Add Trivy as a complementary image scanner
+## 4  Artifacts & Dashboards
+
+| Artifact | Producer | Format | Consumed By |
+|----------|----------|--------|-------------|
+| `semgrep.json` | Semgrep | JSON | Long-term S3 store / diff checks |
+| `eslint.sarif` | ESLint | SARIF | GitHub Code Scanning |
+| `gitleaks-report.json` | Gitleaks | JSON | Security Gate summary |
+| `snyk-deps.json` | Snyk (deps) | JSON | Slack alert / Jira ticket |
+| `snyk-image.json` | Snyk (img) | JSON | Slack alert / Jira ticket |
+
+**Retention:** 30 days (GitHub artifact retention), then promoted to S3 if the release is tagged.
+
+---
+
+## 5  Security Gates
+
+| Layer | Gate Condition (Fail Build If…) |
+|-------|--------------------------------|
+| **Secrets** | Any secret classified as *High* |
+| **SAST** | Critical or High severity issue not suppressed |
+| **SCA** | CVSS ≥ 7 with no available remediation PR |
+| **Image** | OS/CVE severity ≥ High |
+
+Thresholds can be relaxed on feature branches (warning-only) but remain strict on `main` and release branches.
+
+---
+
+## 6  Benefits Snapshot
+
+| Security Domain | Tool(s) | Outcome |
+|-----------------|---------|---------|
+| **Static Code** | Semgrep | Detects logic-level vulns + insecure patterns |
+| **Code Quality** | ESLint | Eliminates style drift & obvious bugs |
+| **Secrets** | Gitleaks | Prevents API keys reaching remote origin |
+| **Dependencies** | Snyk (dep) | Flags vulnerable npm packages early |
+| **Containers** | Snyk (img) | Hardens runtime OS & base image |
+
+---
+
+## 7  Future Roadmap (𝘲𝘶𝘪𝘤𝘬 wins)
+
+1. **Push SARIF from Semgrep & ESLint** into GitHub Code Scanning for a single pane of glass.  
+2. **ChatOps alerts**: Pipe High/Critical findings to Slack `#sec-alerts`.  
+3. **Scorecards**: Automate repo security posture (`ossf/scorecard` action).  
+4. **Add Trivy** as a secondary SBOM & image scanner for cross-validation.
+
+---
+
+## 8  References & Links
+
+* [Semgrep Docs](https://semgrep.dev/docs/)  
+* [ESLint v9 Migration](https://eslint.org/docs/latest/use/migration-guide)  
+* [Gitleaks](https://gitleaks.io/)  
+* [Snyk CLI](https://docs.snyk.io/snyk-cli)
+
+---
+
+### Maintainer Notes
+
+* Update this guide when tool versions change (Semgrep ruleset bumps, ESLint major upgrades, etc.).  
+* Keep action versions pinned (`uses: snyk/actions/node@v1.14.0`) to prevent breaking builds unexpectedly.  
+* Review suppressions quarterly; stale suppressions are an attack surface.
+
+---
+
+**Happy shipping — now in Hard-Mode ™!**
