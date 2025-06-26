@@ -7,7 +7,7 @@ permissions:
   security-events: write
 
 jobs:
-  deploy:
+  security-scans:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -22,16 +22,6 @@ jobs:
         continue-on-error: true
 
      # ✅ Semgrep (SAST)
-      # - name: Run Semgrep
-      #   uses: returntocorp/semgrep-action@v1
-      #   with:
-      #     config: p/default  # or path to custom rules
-      # #    generate-sarif: true
-      #     config: auto
-      #     output: semgrep.sarif
-      #   continue-on-error: true
-
-
       - name: Install Semgrep
         run: pip install semgrep
       - name: Perform Semgrep Analysis
@@ -45,12 +35,8 @@ jobs:
           name: semgrep-scan-results
         #  path: semgrep-results.sarif
           path: semgrep-results.json
-
-      # Upload SARIF file generated in previous step
-      # - name: Upload SARIF result to the GitHub Security Dashboard
-      #   uses: github/codeql-action/upload-sarif@v2
-      #   with:
-      #     sarif_file: semgrep-results.sarif
+      
+       # ✅ Code Linting
 
 
 
