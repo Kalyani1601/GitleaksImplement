@@ -17,5 +17,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Continue with deploy steps
-        run: echo "DevSecOps Training"
+      # ✅ TruffleHog (Secrets Scanner)
+      - name: Run TruffleHog v3
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/ ghcr.io/trufflesecurity/trufflehog:latest \
+          filesystem --directory /repo --only-verified --json > trufflehog-results.json
+
+      - name: Upload TruffleHog Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: trufflehog-results
+          path: trufflehog-results.json
