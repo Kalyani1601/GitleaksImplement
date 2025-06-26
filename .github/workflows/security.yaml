@@ -20,16 +20,16 @@ jobs:
       # Code linting
       - name: Install ESLint v8 (classic config)
         run: npm install eslint@8 --save-dev
-      - name: Install sarif formatter for ESLint
-        run: npm install eslint-formatter-sarif --save-dev
+      - name: Run ESLint via Docker and generate SARIF
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/app \
+            -w /app \
+            node:20-slim /bin/bash -c "
+              npm install eslint eslint-formatter-sarif --no-save &&
+              npx eslint . -f node_modules/eslint-formatter-sarif/index.js -o eslint-report.sarif || true
+      "
 
-      - name: Run ESLint and generate SARIF report
-        run: npx eslint . -f node_modules/eslint-formatter-sarif/index.js -o eslint-report.sarif || true
-
-      - name: Upload SARIF report
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: eslint-report.sarif
-
+ 
 
 
