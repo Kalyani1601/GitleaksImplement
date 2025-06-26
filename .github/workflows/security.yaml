@@ -18,8 +18,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
       # Code linting
-      - name: Install ESLint v8 (classic config)
-        run: npm install eslint@8 --save-dev
+
       - name: Run ESLint via Docker and generate SARIF
         run: |
           docker run --rm \
@@ -27,9 +26,7 @@ jobs:
             -w /app \
             node:20-slim /bin/bash -c "
               npm install eslint eslint-formatter-sarif --no-save &&
-              npx eslint . -f node_modules/eslint-formatter-sarif/index.js -o eslint-report.sarif || true
-      "
+              npx eslint . -f node_modules/eslint-formatter-sarif/index.js -o eslint-report.sarif || true"
 
- 
 
 
