@@ -37,6 +37,16 @@ jobs:
           path: semgrep-results.json
       
        # ✅ Code Linting
+           #  ✅ Code Linting (For angular and nodejs app)
+      - name: Run ESLint
+        run: |
+          npx eslint . -f json -o eslint-results.json || true
+
+      - name: Upload ESLint results
+        uses: actions/upload-artifact@v4
+        with:
+          name: eslint-report
+          path: eslint-results.json
 
 
 
