@@ -1,3 +1,7 @@
+Sonarqube integration 
+
+https://www.coachdevops.com/2021/12/install-sonarqube-using-docker-install.html
+
 # Gitleaks Action
 
 ```
