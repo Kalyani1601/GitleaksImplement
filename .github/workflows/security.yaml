@@ -18,6 +18,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
       # Code linting
+      - name: Install ESLint v8 (classic config)
+        run: npm install eslint@8 --save-dev
+
       - name: Run ESLint
-        run: |
-          npx eslint . || true  # continues even if lint errors are found
+        run: npx eslint . || true
+
