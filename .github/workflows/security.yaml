@@ -7,4 +7,15 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "DevsecOps Training"
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Needed for full history scan
+
+      - name: Run Gitleaks scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Continue with deploy steps
+        run: echo "DevSecOps Training"
