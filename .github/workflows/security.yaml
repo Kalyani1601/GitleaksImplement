@@ -21,6 +21,12 @@ jobs:
       - name: Install ESLint v8 (classic config)
         run: npm install eslint@8 --save-dev
 
-      - name: Run ESLint
-        run: npx eslint . || true
+      - name: Run ESLint and generate SARIF report
+        run: npx eslint . -f sarif -o eslint-report.sarif || true
+
+      - name: Upload ESLint SARIF report
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: eslint-report.sarif
+
 
